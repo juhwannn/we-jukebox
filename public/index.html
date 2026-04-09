@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wepair Jukebox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #08080f;
+        --bg-2: #0f0f1a;
+        --surface: #13131f;
+        --surface-2: #1a1a2e;
+        --surface-3: #22223a;
+        --border: rgba(255, 255, 255, 0.06);
+        --border-2: rgba(255, 255, 255, 0.12);
+        --accent: #7c3aed;
+        --accent-2: #a855f7;
+        --accent-glow: rgba(124, 58, 237, 0.25);
+        --pink: #ec4899;
+        --text: #f1f5f9;
+        --text-2: #94a3b8;
+        --text-3: #64748b;
+        --success: #10b981;
+        --danger: #ef4444;
+        --radius: 14px;
+        --radius-sm: 8px;
+        --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Inter", "Noto Sans KR", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── Animated background ── */
+      body::before {
+        content: "";
+        position: fixed;
+        top: -40%;
+        left: -20%;
+        width: 80vw;
+        height: 80vw;
+        background: radial-gradient(
+          circle,
+          rgba(124, 58, 237, 0.08) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        bottom: -30%;
+        right: -10%;
+        width: 60vw;
+        height: 60vw;
+        background: radial-gradient(
+          circle,
+          rgba(236, 72, 153, 0.06) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .app {
+        position: relative;
+        z-index: 1;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 0 16px 100px;
+      }
+
+      /* ── Header ── */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 0 24px;
+        gap: 12px;
+      }
+
+      .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .header-logo {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent), var(--pink));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px var(--accent-glow);
+      }
+
+      .header-title {
+        font-size: 22px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fff 30%, var(--accent-2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header-sub {
+        font-size: 12px;
+        color: var(--text-3);
+        margin-top: 2px;
+      }
+
+      /* ── Name input chip ── */
+      .name-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 14px 8px 10px;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        flex-shrink: 0;
+      }
+      .name-chip:hover {
+        border-color: var(--border-2);
+      }
+      .name-chip-avatar {
+        width: 26px;
+        height: 26px;
+        background: linear-gradient(135deg, var(--accent), var(--pink));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .name-chip-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-2);
+        max-width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .name-chip-edit {
+        font-size: 11px;
+        color: var(--text-3);
+      }
+
+      /* ── Name modal ── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(6px);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .modal {
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        border-radius: var(--radius);
+        padding: 28px;
+        width: 320px;
+        transform: translateY(12px);
+        transition: transform 0.25s;
+      }
+      .modal-overlay.open .modal {
+        transform: translateY(0);
+      }
+      .modal h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .modal p {
+        font-size: 13px;
+        color: var(--text-2);
+        margin-bottom: 20px;
+      }
+      .modal input {
+        width: 100%;
+        background: var(--surface-3);
+        border: 1px solid var(--border-2);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        font-size: 15px;
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.2s;
+        font-family: inherit;
+      }
+      .modal input:focus {
+        border-color: var(--accent);
+      }
+      .modal-btn {
+        width: 100%;
+        margin-top: 14px;
+        padding: 13px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        border-radius: var(--radius-sm);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+        font-family: inherit;
+      }
+      .modal-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* ── Section label ── */
+      .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      /* ── Now Playing ── */
+      .now-playing-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin-bottom: 24px;
+        transition: border-color 0.3s;
+      }
+      .now-playing-card.active {
+        border-color: rgba(124, 58, 237, 0.35);
+        box-shadow:
+          0 0 0 1px rgba(124, 58, 237, 0.1),
+          var(--shadow);
+      }
+
+      .np-inner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .np-thumbnail-wrap {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .np-thumbnail {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: var(--surface-3);
+        display: block;
+      }
+      .np-thumbnail-placeholder {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        background: var(--surface-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+      }
+
+      /* Equalizer animation */
+      .equalizer {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 16px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 4px;
+        padding: 3px 4px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .now-playing-card.active .equalizer {
+        opacity: 1;
+      }
+      .eq-bar {
+        width: 3px;
+        background: linear-gradient(to top, var(--accent), var(--pink));
+        border-radius: 2px;
+        animation: none;
+      }
+      .now-playing-card.active .eq-bar:nth-child(1) {
+        animation: eq 0.8s ease-in-out infinite alternate;
+      }
+      .now-playing-card.active .eq-bar:nth-child(2) {
+        animation: eq 0.6s ease-in-out 0.15s infinite alternate;
+      }
+      .now-playing-card.active .eq-bar:nth-child(3) {
+        animation: eq 0.9s ease-in-out 0.05s infinite alternate;
+      }
+
+      @keyframes eq {
+        from {
+          height: 3px;
+        }
+        to {
+          height: 14px;
+        }
+      }
+
+      .np-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .np-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent-2);
+        margin-bottom: 6px;
+      }
+      .np-badge-dot {
+        width: 5px;
+        height: 5px;
+        background: var(--accent-2);
+        border-radius: 50%;
+        animation: pulse-dot 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.7);
+        }
+      }
+      .np-title {
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .np-channel {
+        font-size: 12px;
+        color: var(--text-2);
+        margin-bottom: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .np-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .np-requester {
+        font-size: 11px;
+        color: var(--text-3);
+        background: var(--surface-3);
+        padding: 3px 8px;
+        border-radius: 999px;
+      }
+      .np-requester span {
+        color: var(--accent-2);
+      }
+
+      /* Progress bar */
+      .progress-wrap {
+        padding: 0 18px 14px;
+      }
+      .progress-track {
+        height: 3px;
+        background: var(--surface-3);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(to right, var(--accent), var(--pink));
+        border-radius: 99px;
+        transition: width 1s linear;
+      }
+      .progress-times {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-size: 10px;
+        color: var(--text-3);
+      }
+
+      /* Empty state */
+      .np-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 36px;
+        gap: 8px;
+      }
+      .np-empty-icon {
+        font-size: 40px;
+        opacity: 0.3;
+      }
+      .np-empty-text {
+        font-size: 14px;
+        color: var(--text-3);
+      }
+
+      /* ── Search ── */
+      .search-wrap {
+        margin-bottom: 24px;
+      }
+
+      .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .search-input {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 13px 16px 13px 42px;
+        font-size: 14px;
+        color: var(--text);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        font-family: inherit;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 14px center;
+      }
+      .search-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+      .search-input::placeholder {
+        color: var(--text-3);
+      }
+
+      .search-btn {
+        padding: 13px 22px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        border-radius: var(--radius-sm);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          opacity 0.2s,
+          transform 0.1s;
+        font-family: inherit;
+        box-shadow: 0 4px 14px var(--accent-glow);
+      }
+      .search-btn:hover {
+        opacity: 0.9;
+      }
+      .search-btn:active {
+        transform: scale(0.97);
+      }
+      .search-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Search results */
+      .search-results {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .search-result-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          transform 0.1s;
+        animation: slide-in 0.2s ease both;
+      }
+      @keyframes slide-in {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .search-result-item:hover {
+        background: var(--surface-2);
+        border-color: var(--border-2);
+      }
+      .search-result-item:active {
+        transform: scale(0.99);
+      }
+
+      .sr-thumb {
+        width: 56px;
+        height: 42px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--surface-3);
+      }
+      .sr-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .sr-title {
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .sr-channel {
+        font-size: 11px;
+        color: var(--text-3);
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sr-add-btn {
+        flex-shrink: 0;
+        padding: 7px 14px;
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--accent-2);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        font-family: inherit;
+      }
+      .sr-add-btn:hover {
+        background: rgba(124, 58, 237, 0.15);
+        border-color: var(--accent);
+      }
+      .sr-add-btn.added {
+        color: var(--success);
+        border-color: var(--success);
+      }
+
+      .search-status {
+        text-align: center;
+        padding: 24px;
+        font-size: 13px;
+        color: var(--text-3);
+      }
+
+      /* Loading spinner */
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-top-color: var(--accent-2);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── Queue ── */
+      .queue-wrap {
+        margin-bottom: 24px;
+      }
+
+      .queue-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .queue-count {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent-2);
+        background: rgba(124, 58, 237, 0.12);
+        padding: 3px 8px;
+        border-radius: 999px;
+      }
+
+      .queue-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .queue-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        animation: slide-in 0.25s ease both;
+        transition: background 0.15s;
+      }
+      .queue-item:hover {
+        background: var(--surface-2);
+      }
+
+      .qi-rank {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-3);
+        width: 20px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .qi-thumb {
+        width: 52px;
+        height: 40px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: var(--surface-3);
+      }
+      .qi-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .qi-title {
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .qi-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 3px;
+      }
+      .qi-channel {
+        font-size: 11px;
+        color: var(--text-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .qi-requester {
+        font-size: 11px;
+        color: var(--accent-2);
+        background: rgba(124, 58, 237, 0.1);
+        padding: 1px 6px;
+        border-radius: 999px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .qi-remove {
+        background: none;
+        border: none;
+        color: var(--text-3);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        padding: 4px;
+        border-radius: 6px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+        flex-shrink: 0;
+      }
+      .qi-remove:hover {
+        color: var(--danger);
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      .queue-empty {
+        text-align: center;
+        padding: 36px;
+        font-size: 13px;
+        color: var(--text-3);
+      }
+      .queue-empty-icon {
+        font-size: 32px;
+        display: block;
+        margin-bottom: 8px;
+        opacity: 0.3;
+      }
+
+      /* ── Toast ── */
+      .toast-container {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        pointer-events: none;
+      }
+      .toast {
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        border-radius: 999px;
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: var(--shadow);
+        animation:
+          toast-in 0.25s ease,
+          toast-out 0.3s ease 2.5s forwards;
+      }
+      .toast.success {
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+      .toast.error {
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes toast-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 480px) {
+        .header-title {
+          font-size: 18px;
+        }
+        .np-thumbnail {
+          width: 60px;
+          height: 60px;
+        }
+        .np-thumbnail-placeholder {
+          width: 60px;
+          height: 60px;
+        }
+        .search-btn {
+          padding: 13px 16px;
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Header -->
+      <header>
+        <div class="header-brand">
+          <div class="header-logo">🎵</div>
+          <div>
+            <div class="header-title">Wepair Jukebox</div>
+            <div class="header-sub">신청하면 바로 틀어드림</div>
+          </div>
+        </div>
+        <div class="name-chip" id="nameChip" title="이름 설정">
+          <div class="name-chip-avatar" id="nameAvatar">?</div>
+          <div class="name-chip-text" id="nameText">이름 설정</div>
+          <div class="name-chip-edit">✎</div>
+        </div>
+      </header>
+
+      <!-- Now Playing -->
+      <div class="section-label">지금 재생 중</div>
+      <div class="now-playing-card" id="nowPlayingCard">
+        <div class="np-empty" id="npEmpty">
+          <div class="np-empty-icon">🎶</div>
+          <div class="np-empty-text">재생 중인 곡이 없습니다</div>
+        </div>
+        <div class="np-inner" id="npContent" style="display: none">
+          <div class="np-thumbnail-wrap">
+            <img class="np-thumbnail" id="npThumb" src="" alt="" />
+            <div class="equalizer">
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+            </div>
+          </div>
+          <div class="np-info">
+            <div class="np-badge">
+              <div class="np-badge-dot"></div>
+              Now Playing
+            </div>
+            <div class="np-title" id="npTitle"></div>
+            <div class="np-channel" id="npChannel"></div>
+            <div class="np-meta">
+              <div class="np-requester">
+                <span id="npRequester"></span>님 신청
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="progress-wrap" id="progressWrap" style="display: none">
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-times">
+            <span id="progressCurrent">0:00</span>
+            <span id="progressDuration">0:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <div class="section-label">노래 신청</div>
+        <div class="search-box">
+          <input
+            type="text"
+            class="search-input"
+            id="searchInput"
+            placeholder="곡명, 아티스트 검색..."
+            autocomplete="off"
+          />
+          <button class="search-btn" id="searchBtn">검색</button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <!-- Queue -->
+      <div class="queue-wrap">
+        <div class="queue-header">
+          <div class="section-label" style="margin-bottom: 0; flex: 1">
+            신청 목록
+          </div>
+          <div class="queue-count" id="queueCount">0곡</div>
+        </div>
+        <div class="queue-list" id="queueList"></div>
+      </div>
+    </div>
+
+    <!-- Name Modal -->
+    <div class="modal-overlay" id="nameModal">
+      <div class="modal">
+        <h3>이름을 알려주세요</h3>
+        <p>신청 목록에 표시됩니다</p>
+        <input
+          type="text"
+          id="nameInput"
+          placeholder="이름 입력..."
+          maxlength="10"
+        />
+        <button class="modal-btn" id="nameSaveBtn">저장</button>
+      </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // ── State ──────────────────────────────────────────────────────────────
+      let myName = localStorage.getItem("jukebox-name") || "";
+      let progressInterval = null;
+      let currentProgress = { currentTime: 0, duration: 0 };
+
+      // ── Socket ─────────────────────────────────────────────────────────────
+      const socket = io();
+
+      socket.on("state:update", ({ queue, nowPlaying }) => {
+        renderNowPlaying(nowPlaying);
+        renderQueue(queue);
+      });
+
+      socket.on("player:progress", ({ currentTime, duration }) => {
+        currentProgress = { currentTime, duration };
+        updateProgressUI(currentTime, duration);
+      });
+
+      // ── Name ───────────────────────────────────────────────────────────────
+      function updateNameUI() {
+        const name = myName || "이름 설정";
+        const avatar = myName ? myName[0].toUpperCase() : "?";
+        document.getElementById("nameText").textContent = name;
+        document.getElementById("nameAvatar").textContent = avatar;
+      }
+      updateNameUI();
+
+      if (!myName) {
+        setTimeout(() => openNameModal(), 600);
+      }
+
+      document
+        .getElementById("nameChip")
+        .addEventListener("click", openNameModal);
+
+      function openNameModal() {
+        document.getElementById("nameInput").value = myName;
+        document.getElementById("nameModal").classList.add("open");
+        setTimeout(() => document.getElementById("nameInput").focus(), 150);
+      }
+      function closeNameModal() {
+        document.getElementById("nameModal").classList.remove("open");
+      }
+
+      document.getElementById("nameModal").addEventListener("click", (e) => {
+        if (e.target === document.getElementById("nameModal")) closeNameModal();
+      });
+
+      document.getElementById("nameSaveBtn").addEventListener("click", () => {
+        const val = document.getElementById("nameInput").value.trim();
+        if (!val) return;
+        myName = val;
+        localStorage.setItem("jukebox-name", myName);
+        updateNameUI();
+        closeNameModal();
+        showToast("이름이 저장되었습니다", "success");
+      });
+
+      document.getElementById("nameInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("nameSaveBtn").click();
+      });
+
+      // ── Search ─────────────────────────────────────────────────────────────
+      const searchInput = document.getElementById("searchInput");
+      const searchBtn = document.getElementById("searchBtn");
+      const searchResults = document.getElementById("searchResults");
+
+      let searchTimeout = null;
+
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doSearch();
+      });
+      searchBtn.addEventListener("click", doSearch);
+
+      async function doSearch() {
+        const q = searchInput.value.trim();
+        if (!q) return;
+
+        searchBtn.disabled = true;
+        searchResults.innerHTML = `<div class="search-status"><span class="spinner"></span>검색 중...</div>`;
+
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+
+          if (data.error) {
+            searchResults.innerHTML = `<div class="search-status">${data.error}</div>`;
+            return;
+          }
+          if (!data.items || data.items.length === 0) {
+            searchResults.innerHTML = `<div class="search-status">검색 결과가 없습니다</div>`;
+            return;
+          }
+
+          renderSearchResults(data.items);
+        } catch {
+          searchResults.innerHTML = `<div class="search-status">검색 중 오류가 발생했습니다</div>`;
+        } finally {
+          searchBtn.disabled = false;
+        }
+      }
+
+      function renderSearchResults(items) {
+        searchResults.innerHTML = "";
+        items.forEach((item, i) => {
+          const el = document.createElement("div");
+          el.className = "search-result-item";
+          el.style.animationDelay = `${i * 40}ms`;
+          el.innerHTML = `
+        <img class="sr-thumb" src="${item.thumbnail}" alt="" loading="lazy" />
+        <div class="sr-info">
+          <div class="sr-title">${escHtml(item.title)}</div>
+          <div class="sr-channel">${escHtml(item.channel)}</div>
+        </div>
+        <button class="sr-add-btn" data-videoid="${item.videoId}">+ 신청</button>
+      `;
+
+          const btn = el.querySelector(".sr-add-btn");
+          btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await addToQueue(item, btn);
+          });
+
+          el.addEventListener("click", async () => {
+            await addToQueue(item, btn);
+          });
+
+          searchResults.appendChild(el);
+        });
+      }
+
+      async function addToQueue(item, btn) {
+        if (btn.classList.contains("added")) return;
+
+        if (!myName) {
+          showToast("먼저 이름을 설정해주세요", "error");
+          openNameModal();
+          return;
+        }
+
+        btn.textContent = "...";
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/queue", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoId: item.videoId,
+              title: item.title,
+              channel: item.channel,
+              thumbnail: item.thumbnail,
+              requester: myName,
+            }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            showToast(data.error || "신청 실패", "error");
+            btn.textContent = "+ 신청";
+            btn.disabled = false;
+            return;
+          }
+
+          btn.textContent = "✓ 신청됨";
+          btn.classList.add("added");
+          showToast(`"${item.title.slice(0, 20)}..." 신청 완료!`, "success");
+        } catch {
+          showToast("네트워크 오류", "error");
+          btn.textContent = "+ 신청";
+          btn.disabled = false;
+        }
+      }
+
+      // ── Now Playing ────────────────────────────────────────────────────────
+      function renderNowPlaying(song) {
+        const card = document.getElementById("nowPlayingCard");
+        const empty = document.getElementById("npEmpty");
+        const content = document.getElementById("npContent");
+        const progressWrap = document.getElementById("progressWrap");
+
+        if (!song) {
+          card.classList.remove("active");
+          empty.style.display = "";
+          content.style.display = "none";
+          progressWrap.style.display = "none";
+          resetProgress();
+          return;
+        }
+
+        card.classList.add("active");
+        empty.style.display = "none";
+        content.style.display = "";
+        progressWrap.style.display = "";
+
+        document.getElementById("npThumb").src = song.thumbnail || "";
+        document.getElementById("npTitle").textContent = song.title;
+        document.getElementById("npChannel").textContent = song.channel;
+        document.getElementById("npRequester").textContent = song.requester;
+      }
+
+      function updateProgressUI(currentTime, duration) {
+        if (!duration) return;
+        const pct = Math.min((currentTime / duration) * 100, 100);
+        document.getElementById("progressFill").style.width = pct + "%";
+        document.getElementById("progressCurrent").textContent =
+          formatTime(currentTime);
+        document.getElementById("progressDuration").textContent =
+          formatTime(duration);
+      }
+
+      function resetProgress() {
+        document.getElementById("progressFill").style.width = "0%";
+        document.getElementById("progressCurrent").textContent = "0:00";
+        document.getElementById("progressDuration").textContent = "0:00";
+      }
+
+      // ── Queue ──────────────────────────────────────────────────────────────
+      function renderQueue(queue) {
+        const list = document.getElementById("queueList");
+        const count = document.getElementById("queueCount");
+
+        count.textContent = `${queue.length}곡`;
+
+        if (queue.length === 0) {
+          list.innerHTML = `<div class="queue-empty"><span class="queue-empty-icon">🎼</span>신청된 곡이 없습니다</div>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        queue.forEach((song, i) => {
+          const el = document.createElement("div");
+          el.className = "queue-item";
+          el.style.animationDelay = `${i * 30}ms`;
+          el.innerHTML = `
+        <div class="qi-rank">${i + 1}</div>
+        <img class="qi-thumb" src="${song.thumbnail}" alt="" loading="lazy" />
+        <div class="qi-info">
+          <div class="qi-title">${escHtml(song.title)}</div>
+          <div class="qi-meta">
+            <div class="qi-channel">${escHtml(song.channel)}</div>
+            <div class="qi-requester">${escHtml(song.requester)}</div>
+          </div>
+        </div>
+        <button class="qi-remove" data-id="${song.id}" title="취소">×</button>
+      `;
+
+          el.querySelector(".qi-remove").addEventListener("click", async () => {
+            await removeFromQueue(song.id);
+          });
+
+          list.appendChild(el);
+        });
+      }
+
+      async function removeFromQueue(id) {
+        try {
+          await fetch(`/api/queue/${id}`, { method: "DELETE" });
+        } catch {
+          showToast("취소 실패", "error");
+        }
+      }
+
+      // ── Toast ──────────────────────────────────────────────────────────────
+      function showToast(msg, type = "success") {
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 2900);
+      }
+
+      // ── Utils ──────────────────────────────────────────────────────────────
+      function formatTime(seconds) {
+        const s = Math.floor(seconds);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      }
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+    </script>
+  </body>
+</html>

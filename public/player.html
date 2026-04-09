@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Jukebox Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --accent: #7c3aed;
+        --accent-2: #a855f7;
+        --pink: #ec4899;
+        --text: #f1f5f9;
+        --text-2: #94a3b8;
+        --text-3: #64748b;
+        --surface: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.08);
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        color: var(--text);
+        font-family: "Inter", "Noto Sans KR", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      /* ── Background art ── */
+      #bgArt {
+        position: fixed;
+        inset: -40px;
+        background-size: cover;
+        background-position: center;
+        filter: blur(60px) brightness(0.25) saturate(1.5);
+        transition: background-image 1.2s ease;
+        z-index: 0;
+      }
+      #bgOverlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.3) 0%,
+          rgba(0, 0, 0, 0.7) 100%
+        );
+        z-index: 1;
+      }
+
+      /* ── Layout ── */
+      .player-layout {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: env(safe-area-inset-top, 20px) 24px
+          env(safe-area-inset-bottom, 20px);
+      }
+
+      /* ── Status bar ── */
+      .status-bar {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 12px;
+        margin-bottom: 8px;
+      }
+      .status-brand {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        background: linear-gradient(135deg, #fff 30%, var(--accent-2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .status-badges {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .status-badge {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid;
+      }
+      .badge-wake {
+        color: #34d399;
+        border-color: rgba(52, 211, 153, 0.3);
+        background: rgba(52, 211, 153, 0.08);
+      }
+      .badge-wake.off {
+        color: var(--text-3);
+        border-color: var(--border);
+        background: transparent;
+      }
+      .badge-live {
+        color: var(--pink);
+        border-color: rgba(236, 72, 153, 0.3);
+        background: rgba(236, 72, 153, 0.08);
+      }
+      .badge-live.off {
+        color: var(--text-3);
+        border-color: var(--border);
+        background: transparent;
+      }
+
+      /* ── Album art ── */
+      .art-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-height: 45vh;
+        margin: 8px 0;
+      }
+      .art-container {
+        position: relative;
+        width: min(300px, 80vw);
+        aspect-ratio: 1;
+      }
+      .art-ring {
+        position: absolute;
+        inset: -6px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--accent), var(--pink));
+        opacity: 0;
+        transition: opacity 0.6s;
+        animation: none;
+      }
+      .playing .art-ring {
+        opacity: 0.6;
+        animation: ring-pulse 3s ease-in-out infinite;
+      }
+      @keyframes ring-pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.02);
+        }
+      }
+      .art-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 20px;
+        object-fit: cover;
+        background: #1a1a2e;
+        display: block;
+        position: relative;
+        z-index: 1;
+        transition: opacity 0.4s;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+      }
+      .art-placeholder {
+        width: 100%;
+        height: 100%;
+        border-radius: 20px;
+        background: #1a1a2e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 80px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ── Song info ── */
+      .song-info {
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        padding: 0 8px;
+        margin-bottom: 8px;
+      }
+      .song-title {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 6px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .song-channel {
+        font-size: 13px;
+        color: var(--text-2);
+        margin-bottom: 10px;
+      }
+      .song-requester {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--accent-2);
+        background: rgba(124, 58, 237, 0.12);
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        padding: 4px 12px;
+        border-radius: 999px;
+      }
+
+      /* ── Equalizer bars (decorative) ── */
+      .eq-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 18px;
+        margin-bottom: 16px;
+        justify-content: center;
+      }
+      .eq-b {
+        width: 4px;
+        background: linear-gradient(to top, var(--accent), var(--pink));
+        border-radius: 2px;
+        height: 3px;
+        transition: height 0.1s;
+      }
+      .playing .eq-b:nth-child(1) {
+        animation: eqb 0.7s ease-in-out infinite alternate;
+      }
+      .playing .eq-b:nth-child(2) {
+        animation: eqb 0.5s ease-in-out 0.1s infinite alternate;
+      }
+      .playing .eq-b:nth-child(3) {
+        animation: eqb 0.8s ease-in-out 0.2s infinite alternate;
+      }
+      .playing .eq-b:nth-child(4) {
+        animation: eqb 0.6s ease-in-out 0.05s infinite alternate;
+      }
+      .playing .eq-b:nth-child(5) {
+        animation: eqb 0.9s ease-in-out 0.15s infinite alternate;
+      }
+      @keyframes eqb {
+        from {
+          height: 2px;
+        }
+        to {
+          height: 18px;
+        }
+      }
+
+      /* ── Progress ── */
+      .progress-area {
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 16px;
+      }
+      .progress-track {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(to right, var(--accent), var(--pink));
+        border-radius: 99px;
+        transition: width 1s linear;
+      }
+      .progress-times {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 7px;
+        font-size: 11px;
+        color: var(--text-3);
+      }
+
+      /* ── Next up ── */
+      .next-up {
+        width: 100%;
+        max-width: 500px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .next-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        white-space: nowrap;
+      }
+      .next-thumb {
+        width: 40px;
+        height: 30px;
+        border-radius: 6px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.05);
+        flex-shrink: 0;
+      }
+      .next-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .next-title {
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .next-requester {
+        font-size: 10px;
+        color: var(--accent-2);
+        margin-top: 2px;
+      }
+      .next-empty {
+        font-size: 12px;
+        color: var(--text-3);
+        flex: 1;
+      }
+
+      /* ── YouTube strip ── */
+      .yt-strip {
+        width: 100%;
+        max-width: 500px;
+        margin-top: 12px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #000;
+        flex-shrink: 0;
+      }
+      #ytPlayer {
+        display: block;
+        width: 100%;
+        height: 56px;
+      }
+
+      /* ── Start overlay ── */
+      .start-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.92);
+        backdrop-filter: blur(12px);
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        transition: opacity 0.4s;
+      }
+      .start-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .start-logo {
+        font-size: 72px;
+      }
+      .start-title {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fff 30%, var(--accent-2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .start-sub {
+        font-size: 14px;
+        color: var(--text-2);
+        text-align: center;
+        padding: 0 32px;
+      }
+      .start-btn {
+        margin-top: 12px;
+        padding: 16px 48px;
+        background: linear-gradient(135deg, var(--accent), var(--pink));
+        border: none;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+        font-family: inherit;
+        transition:
+          transform 0.1s,
+          box-shadow 0.2s;
+      }
+      .start-btn:active {
+        transform: scale(0.96);
+        box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+      }
+      .start-warning {
+        font-size: 11px;
+        color: var(--text-3);
+        text-align: center;
+      }
+
+      /* ── Idle message ── */
+      .idle-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+      }
+      .idle-icon {
+        font-size: 48px;
+        opacity: 0.4;
+      }
+      .idle-text {
+        font-size: 15px;
+        color: var(--text-2);
+      }
+      .idle-sub {
+        font-size: 12px;
+        color: var(--text-3);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Blurred bg art -->
+    <div id="bgArt"></div>
+    <div id="bgOverlay"></div>
+
+    <!-- Start overlay (mobile requires user gesture for audio) -->
+    <div class="start-overlay" id="startOverlay">
+      <div class="start-logo">🎵</div>
+      <div class="start-title">Wepair Jukebox</div>
+      <div class="start-sub">
+        공용 플레이어입니다<br />신청된 곡을 자동으로 재생합니다
+      </div>
+      <button class="start-btn" id="startBtn">시작하기</button>
+      <div class="start-warning">
+        모바일 자동재생을 위해 한 번 터치가 필요합니다
+      </div>
+    </div>
+
+    <!-- Main player UI -->
+    <div class="player-layout" id="playerLayout">
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="status-brand">🎵 Wepair Jukebox</div>
+        <div class="status-badges">
+          <div class="status-badge badge-wake off" id="wakeBadge">
+            WAKE LOCK OFF
+          </div>
+          <div class="status-badge badge-live off" id="liveBadge">LIVE</div>
+        </div>
+      </div>
+
+      <!-- Art -->
+      <div class="art-wrap">
+        <div class="art-container" id="artContainer">
+          <div class="art-ring" id="artRing"></div>
+          <div class="art-placeholder" id="artPlaceholder">🎶</div>
+          <img
+            class="art-img"
+            id="artImg"
+            src=""
+            alt=""
+            style="display: none"
+          />
+        </div>
+      </div>
+
+      <!-- Song info -->
+      <div class="song-info" id="songInfo">
+        <div class="idle-message">
+          <div class="idle-icon">🎼</div>
+          <div class="idle-text">재생 대기 중</div>
+          <div class="idle-sub">신청 페이지에서 노래를 신청해보세요</div>
+        </div>
+      </div>
+
+      <!-- EQ bars -->
+      <div class="eq-bars" id="eqBars">
+        <div class="eq-b"></div>
+        <div class="eq-b"></div>
+        <div class="eq-b"></div>
+        <div class="eq-b"></div>
+        <div class="eq-b"></div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-area" id="progressArea" style="visibility: hidden">
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-times">
+          <span id="progressCurrent">0:00</span>
+          <span id="progressDuration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Next up -->
+      <div class="next-up" id="nextUp">
+        <div class="next-label">다음 곡</div>
+        <div class="next-empty">신청된 곡이 없습니다</div>
+      </div>
+
+      <!-- YouTube player strip -->
+      <div class="yt-strip">
+        <div id="ytPlayer"></div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // ── YouTube IFrame API ───────────────────────────────────────────────
+      let ytPlayer = null;
+      let ytReady = false;
+      let pendingSong = null;
+      let isPlayerStarted = false;
+      let currentSong = null;
+      let progressTimer = null;
+
+      window.onYouTubeIframeAPIReady = function () {
+        ytReady = true;
+        ytPlayer = new YT.Player("ytPlayer", {
+          height: "56",
+          width: "100%",
+          playerVars: {
+            autoplay: 0,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+            onError: onPlayerError,
+          },
+        });
+      };
+
+      function onPlayerReady() {
+        console.log("[YT] Player ready");
+        if (pendingSong) {
+          playSong(pendingSong);
+          pendingSong = null;
+        }
+      }
+
+      function onPlayerStateChange(event) {
+        const S = YT.PlayerState;
+        if (event.data === S.PLAYING) {
+          setPlayingUI(true);
+          startProgressTimer();
+        } else if (event.data === S.PAUSED || event.data === S.BUFFERING) {
+          setPlayingUI(event.data === S.PLAYING);
+        } else if (event.data === S.ENDED) {
+          stopProgressTimer();
+          setPlayingUI(false);
+          socket.emit("player:ended");
+        }
+      }
+
+      function onPlayerError(event) {
+        console.error("[YT] Error:", event.data);
+        // 재생 불가 시 다음 곡으로
+        setTimeout(() => socket.emit("player:ended"), 1500);
+      }
+
+      // ── Socket ───────────────────────────────────────────────────────────
+      const socket = io();
+
+      socket.on("connect", () => {
+        document.getElementById("liveBadge").classList.remove("off");
+        console.log("[Socket] Connected");
+      });
+      socket.on("disconnect", () => {
+        document.getElementById("liveBadge").classList.add("off");
+      });
+
+      socket.on("state:update", ({ queue, nowPlaying }) => {
+        renderNextUp(queue);
+
+        if (!nowPlaying && isPlayerStarted) {
+          // 서버가 빈 상태 → 큐 있으면 다음 곡 요청
+          if (queue.length > 0) {
+            requestNextSong();
+          }
+        }
+      });
+
+      socket.on("player:play", (song) => {
+        playSong(song);
+      });
+
+      socket.on("player:play-next", () => {
+        if (isPlayerStarted) requestNextSong();
+      });
+
+      // ── Start button ─────────────────────────────────────────────────────
+      document
+        .getElementById("startBtn")
+        .addEventListener("click", async () => {
+          isPlayerStarted = true;
+
+          // Hide overlay
+          document.getElementById("startOverlay").classList.add("hidden");
+
+          // Acquire Wake Lock
+          await acquireWakeLock();
+
+          // Request initial state
+          const res = await fetch("/api/state");
+          const { nowPlaying, queue } = await res.json();
+
+          renderNextUp(queue);
+
+          if (nowPlaying) {
+            playSong(nowPlaying);
+          } else if (queue.length > 0) {
+            requestNextSong();
+          }
+        });
+
+      // ── Wake Lock ─────────────────────────────────────────────────────────
+      let wakeLock = null;
+      async function acquireWakeLock() {
+        if (!("wakeLock" in navigator)) {
+          console.warn("[WakeLock] Not supported");
+          return;
+        }
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          document.getElementById("wakeBadge").classList.remove("off");
+          wakeLock.addEventListener("release", () => {
+            document.getElementById("wakeBadge").classList.add("off");
+          });
+          console.log("[WakeLock] Acquired");
+        } catch (err) {
+          console.warn("[WakeLock] Failed:", err);
+        }
+      }
+
+      // 화면이 잠깐 꺼졌다 켜질 때 재획득
+      document.addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "visible" && isPlayerStarted) {
+          await acquireWakeLock();
+        }
+      });
+
+      // ── Play ──────────────────────────────────────────────────────────────
+      function playSong(song) {
+        currentSong = song;
+
+        if (
+          !ytReady ||
+          !ytPlayer ||
+          typeof ytPlayer.loadVideoById !== "function"
+        ) {
+          pendingSong = song;
+          return;
+        }
+
+        ytPlayer.loadVideoById(song.videoId);
+        socket.emit("player:started", song);
+
+        // Update UI
+        updateArt(song.thumbnail);
+        updateSongInfo(song);
+        document.getElementById("progressArea").style.visibility = "visible";
+        resetProgress();
+      }
+
+      async function requestNextSong() {
+        try {
+          const res = await fetch("/api/next");
+          const data = await res.json();
+          if (data.song) {
+            playSong(data.song);
+          } else {
+            currentSong = null;
+            setIdleUI();
+          }
+        } catch (err) {
+          console.error("[Next] Error:", err);
+        }
+      }
+
+      // ── UI helpers ────────────────────────────────────────────────────────
+      function updateArt(thumbnail) {
+        const placeholder = document.getElementById("artPlaceholder");
+        const img = document.getElementById("artImg");
+        const bgArt = document.getElementById("bgArt");
+
+        if (thumbnail) {
+          // Use maxresdefault if available (better quality for bg art)
+          const videoId = thumbnail.match(/\/vi\/([^/]+)\//)?.[1];
+          const hqThumb = videoId
+            ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+            : thumbnail;
+
+          img.src = thumbnail;
+          img.style.display = "block";
+          placeholder.style.display = "none";
+          bgArt.style.backgroundImage = `url('${hqThumb}')`;
+        } else {
+          img.style.display = "none";
+          placeholder.style.display = "flex";
+          bgArt.style.backgroundImage = "none";
+        }
+      }
+
+      function updateSongInfo(song) {
+        document.getElementById("songInfo").innerHTML = `
+      <div class="song-title">${escHtml(song.title)}</div>
+      <div class="song-channel">${escHtml(song.channel)}</div>
+      <div class="song-requester">🎵 ${escHtml(song.requester)}님 신청</div>
+    `;
+      }
+
+      function setIdleUI() {
+        document.getElementById("artImg").style.display = "none";
+        document.getElementById("artPlaceholder").style.display = "flex";
+        document.getElementById("bgArt").style.backgroundImage = "none";
+        document.getElementById("songInfo").innerHTML = `
+      <div class="idle-message">
+        <div class="idle-icon">🎼</div>
+        <div class="idle-text">재생 대기 중</div>
+        <div class="idle-sub">신청 페이지에서 노래를 신청해보세요</div>
+      </div>
+    `;
+        document.getElementById("progressArea").style.visibility = "hidden";
+        setPlayingUI(false);
+      }
+
+      function setPlayingUI(playing) {
+        const container = document.getElementById("artContainer");
+        const eqBars = document.getElementById("eqBars");
+        if (playing) {
+          container.classList.add("playing");
+          eqBars.classList.add("playing");
+        } else {
+          container.classList.remove("playing");
+          eqBars.classList.remove("playing");
+        }
+      }
+
+      function renderNextUp(queue) {
+        const nextUp = document.getElementById("nextUp");
+        if (!queue || queue.length === 0) {
+          nextUp.innerHTML = `
+        <div class="next-label">다음 곡</div>
+        <div class="next-empty">신청된 곡이 없습니다</div>
+      `;
+          return;
+        }
+
+        const next = queue[0];
+        nextUp.innerHTML = `
+      <div class="next-label">다음 곡</div>
+      <img class="next-thumb" src="${next.thumbnail}" alt="" />
+      <div class="next-info">
+        <div class="next-title">${escHtml(next.title)}</div>
+        <div class="next-requester">${escHtml(next.requester)}님 신청${queue.length > 1 ? ` · 외 ${queue.length - 1}곡` : ""}</div>
+      </div>
+    `;
+      }
+
+      // ── Progress ──────────────────────────────────────────────────────────
+      function startProgressTimer() {
+        stopProgressTimer();
+        progressTimer = setInterval(() => {
+          if (!ytPlayer || typeof ytPlayer.getCurrentTime !== "function")
+            return;
+          const current = ytPlayer.getCurrentTime() || 0;
+          const duration = ytPlayer.getDuration() || 0;
+          updateProgressUI(current, duration);
+          socket.emit("player:progress", { currentTime: current, duration });
+        }, 1000);
+      }
+
+      function stopProgressTimer() {
+        if (progressTimer) {
+          clearInterval(progressTimer);
+          progressTimer = null;
+        }
+      }
+
+      function updateProgressUI(currentTime, duration) {
+        if (!duration) return;
+        const pct = Math.min((currentTime / duration) * 100, 100);
+        document.getElementById("progressFill").style.width = pct + "%";
+        document.getElementById("progressCurrent").textContent =
+          formatTime(currentTime);
+        document.getElementById("progressDuration").textContent =
+          formatTime(duration);
+      }
+
+      function resetProgress() {
+        document.getElementById("progressFill").style.width = "0%";
+        document.getElementById("progressCurrent").textContent = "0:00";
+        document.getElementById("progressDuration").textContent = "0:00";
+      }
+
+      // ── Utils ──────────────────────────────────────────────────────────────
+      function formatTime(seconds) {
+        const s = Math.floor(seconds);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      }
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // ── Load YouTube IFrame API ────────────────────────────────────────────
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    </script>
+  </body>
+</html>
