@@ -138,6 +138,11 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('player:progress', data);
   });
 
+  // 인덱스 → 플레이어 음량 제어
+  socket.on('player:setVolume', (volume) => {
+    socket.broadcast.emit('player:setVolume', volume);
+  });
+
   // 플레이어가 재생 시작했을 때
   socket.on('player:started', (song) => {
     nowPlaying = song;
@@ -149,11 +154,8 @@ io.on('connection', (socket) => {
   socket.on('player:ended', () => {
     nowPlaying = null;
     io.emit('state:update', { queue, nowPlaying });
-
     if (queue.length > 0) {
-      nowPlaying = queue.shift();
-      io.emit('state:update', { queue, nowPlaying });
-      io.emit('player:play', nowPlaying);
+      io.emit('player:play-next');
     }
   });
 

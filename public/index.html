@@ -771,6 +771,59 @@
         opacity: 0.3;
       }
 
+      /* ── Volume control ── */
+      .volume-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .volume-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+        width: 24px;
+        text-align: center;
+      }
+      .volume-slider {
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--surface-3);
+        outline: none;
+        cursor: pointer;
+      }
+      .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent-2);
+        cursor: pointer;
+        box-shadow: 0 0 6px var(--accent-glow);
+      }
+      .volume-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent-2);
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 6px var(--accent-glow);
+      }
+      .volume-value {
+        font-size: 12px;
+        color: var(--text-3);
+        width: 32px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+
       /* ── Toast ── */
       .toast-container {
         position: fixed;
@@ -905,6 +958,13 @@
         </div>
       </div>
 
+      <!-- Volume -->
+      <div class="volume-wrap">
+        <span class="volume-icon" id="volumeIcon">🔊</span>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" />
+        <span class="volume-value" id="volumeValue">80%</span>
+      </div>
+
       <!-- Search -->
       <div class="search-wrap">
         <div class="section-label">노래 신청</div>
@@ -970,6 +1030,33 @@
         currentProgress = { currentTime, duration };
         updateProgressUI(currentTime, duration);
       });
+
+      // ── Volume ─────────────────────────────────────────────────────────────
+      const volumeSlider = document.getElementById("volumeSlider");
+      const volumeValue = document.getElementById("volumeValue");
+      const volumeIcon = document.getElementById("volumeIcon");
+
+      const savedVolume = localStorage.getItem("jukebox-volume");
+      if (savedVolume !== null) {
+        volumeSlider.value = savedVolume;
+        updateVolumeUI(Number(savedVolume));
+      }
+
+      volumeSlider.addEventListener("input", () => {
+        const vol = Number(volumeSlider.value);
+        updateVolumeUI(vol);
+        localStorage.setItem("jukebox-volume", vol);
+        socket.emit("player:setVolume", vol);
+      });
+
+      function updateVolumeUI(vol) {
+        volumeValue.textContent = vol + "%";
+        volumeIcon.textContent = vol === 0 ? "🔇" : vol < 50 ? "🔉" : "🔊";
+        const pct = vol + "%";
+        volumeSlider.style.background =
+          `linear-gradient(to right, var(--accent-2) ${pct}, var(--surface-3) ${pct})`;
+      }
+      updateVolumeUI(Number(volumeSlider.value));
 
       // ── Name ───────────────────────────────────────────────────────────────
       function updateNameUI() {

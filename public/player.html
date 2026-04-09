@@ -600,15 +600,8 @@
         document.getElementById("liveBadge").classList.add("off");
       });
 
-      socket.on("state:update", ({ queue, nowPlaying }) => {
+      socket.on("state:update", ({ queue }) => {
         renderNextUp(queue);
-
-        if (!nowPlaying && isPlayerStarted) {
-          // 서버가 빈 상태 → 큐 있으면 다음 곡 요청
-          if (queue.length > 0) {
-            requestNextSong();
-          }
-        }
       });
 
       socket.on("player:play", (song) => {
@@ -617,6 +610,12 @@
 
       socket.on("player:play-next", () => {
         if (isPlayerStarted) requestNextSong();
+      });
+
+      socket.on("player:setVolume", (volume) => {
+        if (ytPlayer && typeof ytPlayer.setVolume === "function") {
+          ytPlayer.setVolume(volume);
+        }
       });
 
       // ── Start button ─────────────────────────────────────────────────────
