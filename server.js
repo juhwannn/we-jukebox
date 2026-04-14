@@ -3,8 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const axios = require('axios');
+const yts = require('yt-search');
 const path = require('path');
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -17,40 +24,50 @@ app.use(express.static(path.join(__dirname, 'public')));
 let queue = [];
 let nowPlaying = null;
 let idCounter = 0;
+let users = new Map(); // socketId → { nickname, connectedAt }
+let history = []; // { type, songTitle, requester, remover, timestamp }
+const MAX_HISTORY = 50;
+let boomStats = new Map(); // songId → { videoId, title, requester, boomUp, boomDown, upVoters: Set, downVoters: Set }
+
+function getBoomPayload() {
+  const result = {};
+  boomStats.forEach((stat, songId) => {
+    result[songId] = {
+      songId,
+      videoId: stat.videoId,
+      title: stat.title,
+      requester: stat.requester,
+      boomUp: stat.boomUp,
+      boomDown: stat.boomDown,
+      upVoters: [...stat.upVoters],
+      downVoters: [...stat.downVoters],
+    };
+  });
+  return result;
+}
+
+function addHistory(event) {
+  history.unshift({ ...event, timestamp: new Date().toISOString() });
+  if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+  io.emit('history:update', history);
+}
 
 // ── YouTube Search ─────────────────────────────────────────────────────────
 app.get('/api/search', async (req, res) => {
   const { q } = req.query;
   if (!q || !q.trim()) return res.json({ items: [] });
 
-  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === '여기에_유튜브_API_키_입력') {
-    return res.status(503).json({ error: 'YouTube API 키가 설정되지 않았습니다. .env 파일을 확인하세요.' });
-  }
-
   try {
-    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: {
-        key: process.env.YOUTUBE_API_KEY,
-        q: q.trim(),
-        part: 'snippet',
-        type: 'video',
-        maxResults: 8,
-        videoCategoryId: '10',
-        relevanceLanguage: 'ko',
-        regionCode: 'KR',
-      },
-    });
-
-    const items = response.data.items.map((item) => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      channel: item.snippet.channelTitle,
-      thumbnail: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+    const result = await yts(q.trim());
+    const items = result.videos.slice(0, 5).map((v) => ({
+      videoId: v.videoId,
+      title: v.title,
+      channel: v.author.name,
+      thumbnail: v.thumbnail,
     }));
-
     res.json({ items });
   } catch (err) {
-    console.error('[Search Error]', err.response?.data || err.message);
+    console.error('[Search Error]', err.message);
     res.status(500).json({ error: '검색 중 오류가 발생했습니다.' });
   }
 });
@@ -87,6 +104,7 @@ app.post('/api/queue', (req, res) => {
 
   queue.push(song);
   io.emit('state:update', { queue, nowPlaying });
+  addHistory({ type: 'add', songTitle: song.title, requester: song.requester });
 
   // 재생 중인 곡이 없으면 플레이어에게 시작 신호
   if (!nowPlaying) {
@@ -98,13 +116,15 @@ app.post('/api/queue', (req, res) => {
 
 app.delete('/api/queue/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const before = queue.length;
-  queue = queue.filter((s) => s.id !== id);
+  const removed = queue.find((s) => s.id === id);
 
-  if (queue.length === before) {
+  if (!removed) {
     return res.status(404).json({ error: '해당 곡을 찾을 수 없습니다.' });
   }
 
+  queue = queue.filter((s) => s.id !== id);
+  const remover = (req.query.remover || '').trim().slice(0, 20) || removed.requester;
+  addHistory({ type: 'remove', songTitle: removed.title, requester: removed.requester, remover });
   io.emit('state:update', { queue, nowPlaying });
   res.json({ success: true });
 });
@@ -123,24 +143,90 @@ app.get('/api/next', (req, res) => {
   res.json({ song: nowPlaying });
 });
 
-// 플레이어가 현재 진행 상황 브로드캐스트 (소켓 직접 사용)
-// → player.html에서 socket.emit('player:progress', { currentTime, duration }) 로 전송
-
 // ── Socket.io ──────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('[Socket] 연결:', socket.id);
 
   // 연결 즉시 현재 상태 전송
   socket.emit('state:update', { queue, nowPlaying });
+  socket.emit('history:update', history);
+  socket.emit('boom:update', getBoomPayload());
+
+  // 유저 닉네임 등록
+  socket.on('user:join', (nickname) => {
+    const name = (nickname || '').trim().slice(0, 20) || '익명';
+    users.set(socket.id, { nickname: name, connectedAt: new Date().toISOString() });
+    io.emit('users:update', [...users.values()]);
+  });
 
   // 플레이어 → 전체 브로드캐스트 (progress)
   socket.on('player:progress', (data) => {
     socket.broadcast.emit('player:progress', data);
   });
 
-  // 인덱스 → 플레이어 음량 제어
+  // 볼륨 제어 → 모든 클라이언트에 동기화
   socket.on('player:setVolume', (volume) => {
-    socket.broadcast.emit('player:setVolume', volume);
+    io.emit('player:setVolume', volume);
+  });
+
+  // 다음 곡 건너뛰기
+  socket.on('player:skip', () => {
+    io.emit('player:skip');
+  });
+
+  // 일시정지/재생 토글
+  socket.on('player:pause', () => {
+    io.emit('player:pause');
+  });
+
+  // 재생 상태 변경 브로드캐스트 (player → others)
+  socket.on('player:playstate', (state) => {
+    socket.broadcast.emit('player:playstate', state);
+  });
+
+  // 붐업 / 붐따 투표
+  socket.on('boom:vote', ({ songId, videoId, title, requester, type }) => {
+    const voter = users.get(socket.id)?.nickname;
+    if (!voter) return;
+
+    if (!boomStats.has(songId)) {
+      boomStats.set(songId, {
+        videoId, title, requester,
+        boomUp: 0, boomDown: 0,
+        upVoters: new Set(),
+        downVoters: new Set(),
+      });
+    }
+
+    const stat = boomStats.get(songId);
+
+    if (type === 'up') {
+      if (stat.upVoters.has(voter)) {
+        stat.upVoters.delete(voter);
+        stat.boomUp--;
+      } else {
+        if (stat.downVoters.has(voter)) {
+          stat.downVoters.delete(voter);
+          stat.boomDown--;
+        }
+        stat.upVoters.add(voter);
+        stat.boomUp++;
+      }
+    } else if (type === 'down') {
+      if (stat.downVoters.has(voter)) {
+        stat.downVoters.delete(voter);
+        stat.boomDown--;
+      } else {
+        if (stat.upVoters.has(voter)) {
+          stat.upVoters.delete(voter);
+          stat.boomUp--;
+        }
+        stat.downVoters.add(voter);
+        stat.boomDown++;
+      }
+    }
+
+    io.emit('boom:update', getBoomPayload());
   });
 
   // 플레이어가 재생 시작했을 때
@@ -161,6 +247,8 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('[Socket] 연결 해제:', socket.id);
+    users.delete(socket.id);
+    io.emit('users:update', [...users.values()]);
   });
 });
 

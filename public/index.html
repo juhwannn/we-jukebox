@@ -897,9 +897,374 @@
           font-size: 13px;
         }
       }
+
+      /* ── Grid Layout with Sidebars ── */
+      .app-grid {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 720px) 200px;
+        max-width: 1280px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        align-items: start;
+      }
+
+      @media (max-width: 1100px) {
+        .app-grid {
+          display: block;
+        }
+        .sidebar {
+          display: none;
+        }
+      }
+
+      /* ── Sidebar ── */
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 28px 12px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-2) transparent;
+      }
+      .sidebar::-webkit-scrollbar {
+        width: 3px;
+      }
+      .sidebar::-webkit-scrollbar-thumb {
+        background: var(--border-2);
+        border-radius: 99px;
+      }
+
+      .sidebar-title {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .sidebar-count {
+        color: var(--accent-2);
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(124, 58, 237, 0.1);
+        padding: 1px 6px;
+        border-radius: 999px;
+      }
+
+      .sidebar-empty {
+        font-size: 12px;
+        color: var(--text-3);
+        text-align: center;
+        padding: 20px 0;
+      }
+
+      /* ── History ── */
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .history-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        padding: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        animation: slide-in 0.2s ease both;
+      }
+
+      .history-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .history-icon.add {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+      }
+      .history-icon.remove {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--danger);
+      }
+
+      .history-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .history-song {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+      .history-meta {
+        font-size: 10px;
+        color: var(--text-3);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ── Online Users ── */
+      .users-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .user-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        animation: slide-in 0.2s ease both;
+      }
+
+      .user-avatar {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, var(--accent), var(--pink));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        color: #fff;
+      }
+
+      .user-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text);
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .user-me {
+        font-size: 10px;
+        color: var(--accent-2);
+        background: rgba(124, 58, 237, 0.1);
+        padding: 1px 5px;
+        border-radius: 999px;
+        flex-shrink: 0;
+      }
+
+      /* ── Boom Row (Now Playing) ── */
+      .np-boom-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-top: 1px solid var(--border);
+      }
+
+      .boom-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-3);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        color: var(--text-2);
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          color 0.15s,
+          transform 0.1s;
+        flex: 1;
+        justify-content: center;
+      }
+      .boom-btn:active {
+        transform: scale(0.97);
+      }
+      .boom-btn.up:hover,
+      .boom-btn.up.active {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #f87171;
+      }
+      .boom-btn.down:hover,
+      .boom-btn.down.active {
+        background: rgba(99, 102, 241, 0.12);
+        border-color: rgba(99, 102, 241, 0.5);
+        color: #818cf8;
+      }
+      .boom-btn .boom-count {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+
+      /* ── Queue item boom buttons ── */
+      .qi-boom {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .qi-boom-btn {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: none;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: inherit;
+        color: var(--text-3);
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .qi-boom-btn.up:hover,
+      .qi-boom-btn.up.active {
+        color: #f87171;
+        border-color: rgba(239, 68, 68, 0.5);
+        background: rgba(239, 68, 68, 0.08);
+      }
+      .qi-boom-btn.down:hover,
+      .qi-boom-btn.down.active {
+        color: #818cf8;
+        border-color: rgba(99, 102, 241, 0.5);
+        background: rgba(99, 102, 241, 0.08);
+      }
+
+      /* ── Boom Ranking ── */
+      .boom-rank-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .boom-rank-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+      .boom-rank-num {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-3);
+        width: 14px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .boom-rank-num.top {
+        color: var(--accent-2);
+      }
+      .boom-rank-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .boom-rank-title {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .boom-rank-meta {
+        font-size: 10px;
+        color: var(--text-3);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .boom-rank-score {
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .boom-rank-score.up { color: #f87171; }
+      .boom-rank-score.down { color: #818cf8; }
+
+      /* ── Playback Controls ── */
+      .np-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex-shrink: 0;
+        align-self: center;
+      }
+
+      .np-ctrl-btn {
+        width: 34px;
+        height: 34px;
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        color: var(--text-2);
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s,
+          transform 0.1s;
+        font-family: inherit;
+      }
+      .np-ctrl-btn:hover {
+        background: rgba(124, 58, 237, 0.15);
+        color: var(--accent-2);
+        border-color: var(--accent);
+      }
+      .np-ctrl-btn:active {
+        transform: scale(0.9);
+      }
     </style>
   </head>
   <body>
+    <div class="app-grid">
+    <!-- Left sidebar: History -->
+    <aside class="sidebar">
+      <div class="sidebar-title">히스토리</div>
+      <div class="history-list" id="historyList">
+        <div class="sidebar-empty">기록이 없습니다</div>
+      </div>
+    </aside>
+
     <div class="app">
       <!-- Header -->
       <header>
@@ -946,6 +1311,14 @@
               </div>
             </div>
           </div>
+          <div class="np-controls" id="npControls" style="display: none">
+            <button class="np-ctrl-btn" id="pauseBtn" title="일시정지/재생">⏸</button>
+            <button class="np-ctrl-btn" id="skipBtn" title="다음 곡 건너뛰기">⏭</button>
+          </div>
+        </div>
+        <div class="np-boom-row" id="npBoomRow" style="display: none">
+          <button class="boom-btn up" id="npBoomUp">🔥 붐업 <span class="boom-count" id="npBoomUpCount">0</span></button>
+          <button class="boom-btn down" id="npBoomDown">💀 붐따 <span class="boom-count" id="npBoomDownCount">0</span></button>
         </div>
         <div class="progress-wrap" id="progressWrap" style="display: none">
           <div class="progress-track">
@@ -961,7 +1334,14 @@
       <!-- Volume -->
       <div class="volume-wrap">
         <span class="volume-icon" id="volumeIcon">🔊</span>
-        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" />
+        <input
+          type="range"
+          class="volume-slider"
+          id="volumeSlider"
+          min="0"
+          max="100"
+          value="80"
+        />
         <span class="volume-value" id="volumeValue">80%</span>
       </div>
 
@@ -993,6 +1373,25 @@
       </div>
     </div>
 
+    <!-- Right sidebar: Online users -->
+    <aside class="sidebar">
+      <div class="sidebar-title">접속자 <span id="usersCount" class="sidebar-count">0</span></div>
+      <div class="users-list" id="usersList">
+        <div class="sidebar-empty">접속 중인 사용자 없음</div>
+      </div>
+
+      <div class="sidebar-title" style="margin-top: 20px">🔥 붐업 순위</div>
+      <div class="boom-rank-list" id="boomUpRankList">
+        <div class="sidebar-empty">아직 기록 없음</div>
+      </div>
+
+      <div class="sidebar-title" style="margin-top: 16px">💀 붐따 순위</div>
+      <div class="boom-rank-list" id="boomDownRankList">
+        <div class="sidebar-empty">아직 기록 없음</div>
+      </div>
+    </aside>
+    </div><!-- /.app-grid -->
+
     <!-- Name Modal -->
     <div class="modal-overlay" id="nameModal">
       <div class="modal">
@@ -1017,9 +1416,24 @@
       let myName = localStorage.getItem("jukebox-name") || "";
       let progressInterval = null;
       let currentProgress = { currentTime: 0, duration: 0 };
+      let isPlaying = false;
+      let currentSong = null;
+      let currentBoomStats = {};
 
       // ── Socket ─────────────────────────────────────────────────────────────
-      const socket = io();
+      const socket = io({
+        reconnectionDelay: 1000,
+        reconnectionAttempts: Infinity,
+      });
+
+      socket.on("connect", () => {
+        console.log("[Socket] 연결됨");
+        if (myName) socket.emit("user:join", myName);
+      });
+
+      socket.on("disconnect", (reason) => {
+        console.warn("[Socket] 연결 해제:", reason);
+      });
 
       socket.on("state:update", ({ queue, nowPlaying }) => {
         renderNowPlaying(nowPlaying);
@@ -1029,6 +1443,31 @@
       socket.on("player:progress", ({ currentTime, duration }) => {
         currentProgress = { currentTime, duration };
         updateProgressUI(currentTime, duration);
+      });
+
+      socket.on("users:update", (users) => {
+        renderUsers(users);
+      });
+
+      socket.on("history:update", (hist) => {
+        renderHistory(hist);
+      });
+
+      socket.on("player:setVolume", (volume) => {
+        volumeSlider.value = volume;
+        updateVolumeUI(Number(volume));
+        localStorage.setItem("jukebox-volume", volume);
+      });
+
+      socket.on("player:playstate", (state) => {
+        isPlaying = state === "playing";
+        updatePauseBtn();
+      });
+
+      socket.on("boom:update", (stats) => {
+        currentBoomStats = stats;
+        updateBoomUI(stats);
+        renderBoomRanking(stats);
       });
 
       // ── Volume ─────────────────────────────────────────────────────────────
@@ -1053,8 +1492,7 @@
         volumeValue.textContent = vol + "%";
         volumeIcon.textContent = vol === 0 ? "🔇" : vol < 50 ? "🔉" : "🔊";
         const pct = vol + "%";
-        volumeSlider.style.background =
-          `linear-gradient(to right, var(--accent-2) ${pct}, var(--surface-3) ${pct})`;
+        volumeSlider.style.background = `linear-gradient(to right, var(--accent-2) ${pct}, var(--surface-3) ${pct})`;
       }
       updateVolumeUI(Number(volumeSlider.value));
 
@@ -1094,6 +1532,7 @@
         myName = val;
         localStorage.setItem("jukebox-name", myName);
         updateNameUI();
+        socket.emit("user:join", myName);
         closeNameModal();
         showToast("이름이 저장되었습니다", "success");
       });
@@ -1220,12 +1659,19 @@
         const empty = document.getElementById("npEmpty");
         const content = document.getElementById("npContent");
         const progressWrap = document.getElementById("progressWrap");
+        const controls = document.getElementById("npControls");
+        const boomRow = document.getElementById("npBoomRow");
+
+        currentSong = song;
 
         if (!song) {
           card.classList.remove("active");
           empty.style.display = "";
           content.style.display = "none";
           progressWrap.style.display = "none";
+          if (controls) controls.style.display = "none";
+          if (boomRow) boomRow.style.display = "none";
+          isPlaying = false;
           resetProgress();
           return;
         }
@@ -1234,6 +1680,11 @@
         empty.style.display = "none";
         content.style.display = "";
         progressWrap.style.display = "";
+        if (controls) controls.style.display = "";
+        if (boomRow) boomRow.style.display = "";
+        isPlaying = true;
+        updatePauseBtn();
+        updateBoomUI(currentBoomStats);
 
         document.getElementById("npThumb").src = song.thumbnail || "";
         document.getElementById("npTitle").textContent = song.title;
@@ -1274,6 +1725,13 @@
           const el = document.createElement("div");
           el.className = "queue-item";
           el.style.animationDelay = `${i * 30}ms`;
+
+          const stat = currentBoomStats[song.id];
+          const upCount = stat?.boomUp || 0;
+          const downCount = stat?.boomDown || 0;
+          const upVoted = stat?.upVoters?.includes(myName) || false;
+          const downVoted = stat?.downVoters?.includes(myName) || false;
+
           el.innerHTML = `
         <div class="qi-rank">${i + 1}</div>
         <img class="qi-thumb" src="${song.thumbnail}" alt="" loading="lazy" />
@@ -1284,9 +1742,21 @@
             <div class="qi-requester">${escHtml(song.requester)}</div>
           </div>
         </div>
+        <div class="qi-boom">
+          <button class="qi-boom-btn up ${upVoted ? "active" : ""}">🔥 <span>${upCount}</span></button>
+          <button class="qi-boom-btn down ${downVoted ? "active" : ""}">💀 <span>${downCount}</span></button>
+        </div>
         <button class="qi-remove" data-id="${song.id}" title="취소">×</button>
       `;
 
+          el.querySelector(".qi-boom-btn.up").addEventListener("click", (e) => {
+            e.stopPropagation();
+            voteBoom(song, "up");
+          });
+          el.querySelector(".qi-boom-btn.down").addEventListener("click", (e) => {
+            e.stopPropagation();
+            voteBoom(song, "down");
+          });
           el.querySelector(".qi-remove").addEventListener("click", async () => {
             await removeFromQueue(song.id);
           });
@@ -1297,7 +1767,8 @@
 
       async function removeFromQueue(id) {
         try {
-          await fetch(`/api/queue/${id}`, { method: "DELETE" });
+          const remover = encodeURIComponent(myName || "");
+          await fetch(`/api/queue/${id}?remover=${remover}`, { method: "DELETE" });
         } catch {
           showToast("취소 실패", "error");
         }
@@ -1325,6 +1796,184 @@
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
+      }
+
+      // ── Boom ──────────────────────────────────────────────────────────────
+      function voteBoom(song, type) {
+        if (!myName) {
+          showToast("먼저 이름을 설정해주세요", "error");
+          openNameModal();
+          return;
+        }
+        socket.emit("boom:vote", {
+          songId: song.id,
+          videoId: song.videoId,
+          title: song.title,
+          requester: song.requester,
+          type,
+        });
+      }
+
+      function updateBoomUI(stats) {
+        // Now-playing 붐 버튼 업데이트
+        if (currentSong) {
+          const stat = stats[currentSong.id];
+          const upCount = stat?.boomUp || 0;
+          const downCount = stat?.boomDown || 0;
+          const upVoted = stat?.upVoters?.includes(myName) || false;
+          const downVoted = stat?.downVoters?.includes(myName) || false;
+
+          const upCountEl = document.getElementById("npBoomUpCount");
+          const downCountEl = document.getElementById("npBoomDownCount");
+          const upBtn = document.getElementById("npBoomUp");
+          const downBtn = document.getElementById("npBoomDown");
+
+          if (upCountEl) upCountEl.textContent = upCount;
+          if (downCountEl) downCountEl.textContent = downCount;
+          if (upBtn) upBtn.classList.toggle("active", upVoted);
+          if (downBtn) downBtn.classList.toggle("active", downVoted);
+        }
+
+        // 큐 아이템 붐 버튼 업데이트
+        document.querySelectorAll(".qi-boom-btn").forEach((btn) => {
+          const item = btn.closest(".queue-item");
+          if (!item) return;
+          const removeBtn = item.querySelector(".qi-remove");
+          const songId = Number(removeBtn?.dataset.id);
+          if (!songId) return;
+
+          const stat = stats[songId];
+          const isUp = btn.classList.contains("up");
+          const count = isUp ? (stat?.boomUp || 0) : (stat?.boomDown || 0);
+          const voted = isUp
+            ? (stat?.upVoters?.includes(myName) || false)
+            : (stat?.downVoters?.includes(myName) || false);
+
+          const span = btn.querySelector("span");
+          if (span) span.textContent = count;
+          btn.classList.toggle("active", voted);
+        });
+      }
+
+      function renderBoomRanking(stats) {
+        const entries = Object.values(stats);
+
+        function renderList(listId, sorted, type) {
+          const el = document.getElementById(listId);
+          if (!el) return;
+          const top = sorted.filter((e) => (type === "up" ? e.boomUp : e.boomDown) > 0).slice(0, 5);
+          if (top.length === 0) {
+            el.innerHTML = '<div class="sidebar-empty">아직 기록 없음</div>';
+            return;
+          }
+          el.innerHTML = "";
+          top.forEach((item, i) => {
+            const score = type === "up" ? item.boomUp : item.boomDown;
+            const icon = type === "up" ? "🔥" : "💀";
+            const scoreClass = type === "up" ? "up" : "down";
+            const rankEl = document.createElement("div");
+            rankEl.className = "boom-rank-item";
+            rankEl.innerHTML = `
+              <div class="boom-rank-num ${i < 3 ? "top" : ""}">${i + 1}</div>
+              <div class="boom-rank-info">
+                <div class="boom-rank-title">${escHtml(item.title)}</div>
+                <div class="boom-rank-meta">${escHtml(item.requester)}</div>
+              </div>
+              <div class="boom-rank-score ${scoreClass}">${icon}${score}</div>
+            `;
+            el.appendChild(rankEl);
+          });
+        }
+
+        const byUp = [...entries].sort((a, b) => b.boomUp - a.boomUp);
+        const byDown = [...entries].sort((a, b) => b.boomDown - a.boomDown);
+        renderList("boomUpRankList", byUp, "up");
+        renderList("boomDownRankList", byDown, "down");
+      }
+
+      document.getElementById("npBoomUp").addEventListener("click", () => {
+        if (currentSong) voteBoom(currentSong, "up");
+      });
+      document.getElementById("npBoomDown").addEventListener("click", () => {
+        if (currentSong) voteBoom(currentSong, "down");
+      });
+
+      // ── Playback Controls ─────────────────────────────────────────────────
+      function updatePauseBtn() {
+        const btn = document.getElementById("pauseBtn");
+        if (!btn) return;
+        btn.textContent = isPlaying ? "⏸" : "▶";
+        btn.title = isPlaying ? "일시정지" : "재생";
+      }
+
+      document.getElementById("pauseBtn").addEventListener("click", () => {
+        socket.emit("player:pause");
+      });
+
+      document.getElementById("skipBtn").addEventListener("click", () => {
+        socket.emit("player:skip");
+      });
+
+      // ── Users ─────────────────────────────────────────────────────────────
+      function renderUsers(users) {
+        const list = document.getElementById("usersList");
+        const countEl = document.getElementById("usersCount");
+        if (!list) return;
+        if (countEl) countEl.textContent = users.length;
+        if (!users || users.length === 0) {
+          list.innerHTML = '<div class="sidebar-empty">접속 중인 사용자 없음</div>';
+          return;
+        }
+        list.innerHTML = "";
+        users.forEach((user, i) => {
+          const el = document.createElement("div");
+          el.className = "user-item";
+          el.style.animationDelay = `${i * 30}ms`;
+          const isMe = user.nickname === myName;
+          el.innerHTML = `
+            <div class="user-avatar">${escHtml(user.nickname[0].toUpperCase())}</div>
+            <div class="user-name">${escHtml(user.nickname)}</div>
+            ${isMe ? '<span class="user-me">나</span>' : ""}
+          `;
+          list.appendChild(el);
+        });
+      }
+
+      // ── History ───────────────────────────────────────────────────────────
+      function renderHistory(hist) {
+        const list = document.getElementById("historyList");
+        if (!list) return;
+        if (!hist || hist.length === 0) {
+          list.innerHTML = '<div class="sidebar-empty">기록이 없습니다</div>';
+          return;
+        }
+        list.innerHTML = "";
+        hist.forEach((item, i) => {
+          const el = document.createElement("div");
+          el.className = "history-item";
+          el.style.animationDelay = `${i * 20}ms`;
+          const icon = item.type === "add" ? "+" : "×";
+          const iconClass = item.type === "add" ? "add" : "remove";
+          const time = formatHistoryTime(item.timestamp);
+          const actor =
+            item.type === "add"
+              ? escHtml(item.requester)
+              : escHtml(item.remover || item.requester);
+          const action = item.type === "add" ? "신청" : "취소";
+          el.innerHTML = `
+            <div class="history-icon ${iconClass}">${icon}</div>
+            <div class="history-info">
+              <div class="history-song">${escHtml(item.songTitle)}</div>
+              <div class="history-meta">${actor} ${action} · ${time}</div>
+            </div>
+          `;
+          list.appendChild(el);
+        });
+      }
+
+      function formatHistoryTime(iso) {
+        const d = new Date(iso);
+        return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
       }
     </script>
   </body>

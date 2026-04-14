@@ -574,8 +574,12 @@
         if (event.data === S.PLAYING) {
           setPlayingUI(true);
           startProgressTimer();
-        } else if (event.data === S.PAUSED || event.data === S.BUFFERING) {
-          setPlayingUI(event.data === S.PLAYING);
+          socket.emit("player:playstate", "playing");
+        } else if (event.data === S.PAUSED) {
+          setPlayingUI(false);
+          socket.emit("player:playstate", "paused");
+        } else if (event.data === S.BUFFERING) {
+          // no state change
         } else if (event.data === S.ENDED) {
           stopProgressTimer();
           setPlayingUI(false);
@@ -615,6 +619,23 @@
       socket.on("player:setVolume", (volume) => {
         if (ytPlayer && typeof ytPlayer.setVolume === "function") {
           ytPlayer.setVolume(volume);
+        }
+      });
+
+      socket.on("player:skip", () => {
+        if (!isPlayerStarted) return;
+        stopProgressTimer();
+        setPlayingUI(false);
+        socket.emit("player:ended");
+      });
+
+      socket.on("player:pause", () => {
+        if (!ytPlayer || typeof ytPlayer.getPlayerState !== "function") return;
+        const state = ytPlayer.getPlayerState();
+        if (state === YT.PlayerState.PLAYING) {
+          ytPlayer.pauseVideo();
+        } else if (state === YT.PlayerState.PAUSED) {
+          ytPlayer.playVideo();
         }
       });
 
